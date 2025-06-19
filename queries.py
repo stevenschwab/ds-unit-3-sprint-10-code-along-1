@@ -70,6 +70,86 @@ NUM_GENRES = '''
     FROM genres;
 '''
 
+# How many Albums?
+NUM_ALBUMS = """
+    SELECT COUNT(*)
+    FROM albums;
+"""
+
+# How many Artists?
+NUM_ARTISTS = """
+    SELECT COUNT(*)
+    FROM artists;
+"""
+
+# What is the Genre with the greatest number of albums?
+MOST_ALBUMS_GENRE = '''
+    WITH albums_by_genre AS (
+        SELECT g.Name, COUNT(DISTINCT t.AlbumId) AS album_count
+        FROM tracks t
+        INNER JOIN genres g ON t.GenreId = g.GenreId
+        GROUP BY g.GenreId
+    )
+    SELECT *
+    FROM albums_by_genre
+    WHERE album_count = (SELECT MAX(album_count) FROM albums_by_genre)
+'''
+
+# What is then name of the artist that has written the most albums?
+MOST_ALBUMS_ARTIST = '''
+    WITH album_count_by_artist AS (
+        SELECT ar.Name, COUNT(al.AlbumId)  AS album_count
+        FROM albums al
+        INNER JOIN artists ar ON al.ArtistId = ar.ArtistId
+        GROUP BY al.ArtistId
+    )
+    SELECT *
+    FROM album_count_by_artist
+    WHERE album_count = (SELECT MAX(album_count) FROM album_count_by_artist)
+'''
+
+# What is the name of the playlist with the longest runtime?
+LONGEST_PLAYLIST = '''
+    WITH playlist_length_by_name AS (
+        SELECT p.PlaylistId, p.Name, SUM(t.Milliseconds) as playlist_length
+        FROM playlists p
+        LEFT JOIN playlist_track pt ON p.PlaylistId = pt.PlaylistId
+        LEFT JOIN tracks t ON pt.TrackId = t.TrackId
+        GROUP BY p.PlaylistId
+    )
+    SELECT Name, playlist_length
+    FROM playlist_length_by_name
+    WHERE playlist_length = (SELECT MAX (playlist_length) FROM playlist_length_by_name)
+    LIMIT 1;
+'''
+
+# What is the name of the artist that writes the shortest songs –on average?
+SHORT_SONG_ARTIST = '''
+    WITH avg_artist_song_length AS (
+        SELECT ar.ArtistId, ar.Name, AVG(t.Milliseconds) AS avg_song_length
+        FROM tracks t
+        INNER JOIN albums a ON t.AlbumId = a.AlbumId
+        INNER JOIN artists ar ON a.ArtistId = ar.ArtistId
+        GROUP BY ar.ArtistId
+    )
+    SELECT Name, avg_song_length
+    FROM avg_artist_song_length
+    WHERE avg_song_length = (SELECT MIN(avg_song_length) FROM avg_artist_song_length)
+'''
+
+# Which employee has been the Support Rep for the greatest number of customers?
+BUSIEST_SUPPORT_REP = '''
+    WITH customers_by_employee AS (
+        SELECT e.EmployeeId, e.FirstName || ' ' || e.LastName as employee_name, COUNT(c.CustomerId) as customer_length
+        FROM employees e
+        LEFT JOIN customers c ON e.EmployeeId = c.SupportRepId
+        GROUP BY e.EmployeeId
+    )
+    SELECT employee_name, customer_length
+    FROM customers_by_employee
+    WHERE customer_length = (SELECT MAX(customer_length) FROM customers_by_employee)
+'''
+
 # What is the shortest track?
 SHORTEST_TRACK = '''
     SELECT *
@@ -141,6 +221,13 @@ QUERY_LIST = [DROP_STORES,
               NUM_STATES,
               NUM_TRACKS,
               NUM_GENRES,
+              NUM_ALBUMS,
+              NUM_ARTISTS,
+              MOST_ALBUMS_GENRE,
+              MOST_ALBUMS_ARTIST,
+              LONGEST_PLAYLIST,
+              SHORT_SONG_ARTIST,
+              BUSIEST_SUPPORT_REP,
               SHORTEST_TRACK,
               LONGEST_TRACK,
               LONG_TRACKS,
